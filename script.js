@@ -242,7 +242,9 @@ function renderBriefExplanation() {
   const middle = impactByAssumption[1];
   const weakest = impactByAssumption[2];
 
-  const paragraph = `In this model, ${strongest.label} matters most for intrinsic value, with roughly a ${formatCurrency(strongest.magnitude)} per-share swing when moved by +/-2%, while ${middle.label} sits in the middle and ${weakest.label} is the least sensitive at current assumptions. This tells us valuation uncertainty is concentrated in discount-rate and growth inputs rather than a single point estimate, so the fair-value range is more informative than one exact number and should be interpreted as a scenario band, not a guaranteed price target.`;
+  const directionNote = `Lower WACC and higher growth assumptions increase valuation, while higher discount rates and weaker growth reduce it.`;
+  
+  const paragraph = `${strongest.label} is the dominant driver of intrinsic value, with a per-share impact of about ${formatCurrency(strongest.magnitude)} for a +/-2% change. ${middle.label} has a moderate effect, while ${weakest.label} is least impactful. Overall, the model shows that valuation is most sensitive to long-term assumptions, so results should be viewed as a range rather than a single estimate.`;
   refs.briefExplanation.textContent = paragraph;
 }
 
