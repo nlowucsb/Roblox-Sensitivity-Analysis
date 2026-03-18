@@ -13,6 +13,9 @@ const state = {
   baseWacc: WORKBOOK_DEFAULTS.baseWacc,
   baseTerminalGrowth: WORKBOOK_DEFAULTS.baseTerminalGrowth,
   fcfShift: 0,
+  netDebt: WORKBOOK_DEFAULTS.netDebt,
+  sharesOutstanding: WORKBOOK_DEFAULTS.sharesOutstanding,
+  activeHeatmapId: "wacc-terminal",
   selectedKey: "wacc-terminal:0:0",
 };
 
@@ -23,9 +26,13 @@ const refs = {
   terminalGrowthSlider: document.querySelector("#terminal-growth-slider"),
   fcfShiftInput: document.querySelector("#fcf-shift-input"),
   fcfShiftSlider: document.querySelector("#fcf-shift-slider"),
+  netDebtInput: document.querySelector("#net-debt-input"),
+  sharesInput: document.querySelector("#shares-input"),
   resetButton: document.querySelector("#reset-button"),
   basePrice: document.querySelector("#base-price"),
   summaryCards: document.querySelector("#summary-cards"),
+  briefExplanation: document.querySelector("#brief-explanation"),
+  heatmapTabs: document.querySelector("#heatmap-tabs"),
   heatmapGrid: document.querySelector("#heatmap-grid"),
   selectedValue: document.querySelector("#selected-value"),
   selectedContext: document.querySelector("#selected-context"),
@@ -93,10 +100,9 @@ function computeIntrinsicValue({ wacc, terminalGrowth, fcfShift }) {
   const terminalValue =
     (projectedFcf * (1 + terminalRate)) / (waccRate - terminalRate);
   const discountedTerminalValue = terminalValue / (1 + waccRate) ** 5;
-  const equityValue =
-    presentValue + discountedTerminalValue - WORKBOOK_DEFAULTS.netDebt;
+  const equityValue = presentValue + discountedTerminalValue - state.netDebt;
 
-  return equityValue / WORKBOOK_DEFAULTS.sharesOutstanding;
+  return equityValue / state.sharesOutstanding;
 }
 
 function formatCurrency(value) {
@@ -137,6 +143,13 @@ function buildScenarioDetails(label, scenario, intrinsicValue) {
     ["WACC", `${scenario.wacc.toFixed(2)}%`],
     ["Terminal growth", `${scenario.terminalGrowth.toFixed(2)}%`],
     ["FCF growth shift", `${scenario.fcfShift >= 0 ? "+" : ""}${scenario.fcfShift.toFixed(2)}%`],
+    ["Net debt", formatCurrency(state.netDebt)],
+    [
+      "Shares outstanding",
+      new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
+        state.sharesOutstanding,
+      ),
+    ],
     [
       "Forecast growth path",
       WORKBOOK_DEFAULTS.baseGrowthRates
@@ -181,78 +194,159 @@ function renderSummaryCards(baseValue) {
     .join("");
 }
 
-function renderHeatmaps() {
-  refs.heatmapGrid.innerHTML = "";
+function getHeatmapConfigById(id) {
+  return heatmapConfigs.find((item) => item.id === id) ?? heatmapConfigs[0];
+}
 
-  heatmapConfigs.forEach((config) => {
-    const scenarios = [];
-    DELTAS.forEach((yDelta) => {
-      DELTAS.forEach((xDelta) => {
-        const scenario = config.getScenario(xDelta, yDelta);
-        const value = computeIntrinsicValue(scenario);
-        scenarios.push({ xDelta, yDelta, scenario, value });
-      });
+function getImpactMagnitude(baseScenario, partialScenario) {
+  const baseValue = computeIntrinsicValue(baseScenario);
+  const highValue = computeIntrinsicValue(partialScenario(2));
+  const lowValue = computeIntrinsicValue(partialScenario(-2));
+  const highMove = Number.isFinite(highValue) ? Math.abs(highValue - baseValue) : 0;
+  const lowMove = Number.isFinite(lowValue) ? Math.abs(lowValue - baseValue) : 0;
+  return Math.max(highMove, lowMove);
+}
+
+function renderBriefExplanation() {
+  const baseScenario = {
+    wacc: state.baseWacc,
+    terminalGrowth: state.baseTerminalGrowth,
+    fcfShift: state.fcfShift,
+  };
+
+  const impactByAssumption = [
+    {
+      label: "WACC",
+      magnitude: getImpactMagnitude(baseScenario, (delta) => ({
+        ...baseScenario,
+        wacc: state.baseWacc + delta,
+      })),
+    },
+    {
+      label: "terminal growth",
+      magnitude: getImpactMagnitude(baseScenario, (delta) => ({
+        ...baseScenario,
+        terminalGrowth: state.baseTerminalGrowth + delta,
+      })),
+    },
+    {
+      label: "FCF growth",
+      magnitude: getImpactMagnitude(baseScenario, (delta) => ({
+        ...baseScenario,
+        fcfShift: state.fcfShift + delta,
+      })),
+    },
+  ].sort((a, b) => b.magnitude - a.magnitude);
+
+  const strongest = impactByAssumption[0];
+  const middle = impactByAssumption[1];
+  const weakest = impactByAssumption[2];
+
+  const paragraph = `In this model, ${strongest.label} matters most for intrinsic value, with roughly a ${formatCurrency(strongest.magnitude)} per-share swing when moved by +/-2%, while ${middle.label} sits in the middle and ${weakest.label} is the least sensitive at current assumptions. This tells us valuation uncertainty is concentrated in discount-rate and growth inputs rather than a single point estimate, so the fair-value range is more informative than one exact number and should be interpreted as a scenario band, not a guaranteed price target.`;
+  refs.briefExplanation.textContent = paragraph;
+}
+
+function renderHeatmapTabs() {
+  refs.heatmapTabs.innerHTML = heatmapConfigs
+    .map((config) => {
+      const isActive = config.id === state.activeHeatmapId;
+      return `
+        <button
+          class="heatmap-tab ${isActive ? "is-active" : ""}"
+          type="button"
+          data-heatmap-tab="${config.id}"
+        >
+          ${config.title}
+        </button>
+      `;
+    })
+    .join("");
+
+  refs.heatmapTabs.querySelectorAll("[data-heatmap-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextHeatmapId = button.dataset.heatmapTab;
+      if (state.activeHeatmapId === nextHeatmapId) {
+        return;
+      }
+
+      state.activeHeatmapId = nextHeatmapId;
+      state.selectedKey = `${nextHeatmapId}:0:0`;
+      render();
     });
+  });
+}
 
-    const finiteValues = scenarios
-      .map((entry) => entry.value)
-      .filter((value) => Number.isFinite(value));
-    const min = Math.min(...finiteValues);
-    const max = Math.max(...finiteValues);
+function renderActiveHeatmap() {
+  refs.heatmapGrid.innerHTML = "";
+  const config = getHeatmapConfigById(state.activeHeatmapId);
 
-    const tableHead = `
-      <thead>
-        <tr>
-          <th>${config.yLabel}</th>
-          ${DELTAS.map((delta) => `<th>${formatPercent(delta)}</th>`).join("")}
-        </tr>
-      </thead>
-    `;
+  const scenarios = [];
+  DELTAS.forEach((yDelta) => {
+    DELTAS.forEach((xDelta) => {
+      const scenario = config.getScenario(xDelta, yDelta);
+      const value = computeIntrinsicValue(scenario);
+      scenarios.push({ xDelta, yDelta, scenario, value });
+    });
+  });
 
-    const tableBody = DELTAS.map((yDelta) => {
-      const rowCells = DELTAS.map((xDelta) => {
-        const cellKey = `${config.id}:${xDelta}:${yDelta}`;
-        const cellData = scenarios.find(
-          (entry) => entry.xDelta === xDelta && entry.yDelta === yDelta,
-        );
-        const isSelected = cellKey === state.selectedKey;
+  const finiteValues = scenarios
+    .map((entry) => entry.value)
+    .filter((value) => Number.isFinite(value));
+  const min = Math.min(...finiteValues);
+  const max = Math.max(...finiteValues);
 
-        return `
-          <td>
-            <button
-              class="heatmap-cell ${isSelected ? "is-selected" : ""}"
-              type="button"
-              data-cell-key="${cellKey}"
-              style="background:${getColor(cellData.value, min, max)};"
-              aria-label="${config.title} ${formatPercent(xDelta)} and ${formatPercent(yDelta)} = ${formatCurrency(cellData.value)}"
-            >
-              ${formatCurrency(cellData.value)}
-            </button>
-          </td>
-        `;
-      }).join("");
+  const tableHead = `
+    <thead>
+      <tr>
+        <th>${config.yLabel}</th>
+        ${DELTAS.map((delta) => `<th>${formatPercent(delta)}</th>`).join("")}
+      </tr>
+    </thead>
+  `;
+
+  const tableBody = DELTAS.map((yDelta) => {
+    const rowCells = DELTAS.map((xDelta) => {
+      const cellKey = `${config.id}:${xDelta}:${yDelta}`;
+      const cellData = scenarios.find(
+        (entry) => entry.xDelta === xDelta && entry.yDelta === yDelta,
+      );
+      const isSelected = cellKey === state.selectedKey;
 
       return `
-        <tr>
-          <th>${formatPercent(yDelta)}</th>
-          ${rowCells}
-        </tr>
+        <td>
+          <button
+            class="heatmap-cell ${isSelected ? "is-selected" : ""}"
+            type="button"
+            data-cell-key="${cellKey}"
+            style="background:${getColor(cellData.value, min, max)};"
+            aria-label="${config.title} ${formatPercent(xDelta)} and ${formatPercent(yDelta)} = ${formatCurrency(cellData.value)}"
+          >
+            ${formatCurrency(cellData.value)}
+          </button>
+        </td>
       `;
     }).join("");
 
-    const card = document.createElement("article");
-    card.className = "heatmap-card";
-    card.innerHTML = `
-      <h3>${config.title}</h3>
-      <p>${config.description}</p>
-      <table class="heatmap-table">
-        ${tableHead}
-        <tbody>${tableBody}</tbody>
-      </table>
+    return `
+      <tr>
+        <th>${formatPercent(yDelta)}</th>
+        ${rowCells}
+      </tr>
     `;
+  }).join("");
 
-    refs.heatmapGrid.appendChild(card);
-  });
+  const card = document.createElement("article");
+  card.className = "heatmap-card";
+  card.innerHTML = `
+    <h3>${config.title}</h3>
+    <p>${config.description}</p>
+    <table class="heatmap-table">
+      ${tableHead}
+      <tbody>${tableBody}</tbody>
+    </table>
+  `;
+
+  refs.heatmapGrid.appendChild(card);
 
   refs.heatmapGrid.querySelectorAll("[data-cell-key]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -264,7 +358,7 @@ function renderHeatmaps() {
 
 function renderSelectedScenario() {
   const [mapId, xDeltaString, yDeltaString] = state.selectedKey.split(":");
-  const config = heatmapConfigs.find((item) => item.id === mapId) ?? heatmapConfigs[0];
+  const config = getHeatmapConfigById(mapId);
   const xDelta = Number(xDeltaString);
   const yDelta = Number(yDeltaString);
   const scenario = config.getScenario(xDelta, yDelta);
@@ -297,6 +391,8 @@ function syncInputs() {
   refs.terminalGrowthSlider.value = state.baseTerminalGrowth.toFixed(2);
   refs.fcfShiftInput.value = state.fcfShift.toFixed(2);
   refs.fcfShiftSlider.value = state.fcfShift.toFixed(2);
+  refs.netDebtInput.value = state.netDebt.toFixed(0);
+  refs.sharesInput.value = state.sharesOutstanding.toFixed(0);
 }
 
 function render() {
@@ -309,7 +405,9 @@ function render() {
 
   refs.basePrice.textContent = formatCurrency(baseValue);
   renderSummaryCards(baseValue);
-  renderHeatmaps();
+  renderBriefExplanation();
+  renderHeatmapTabs();
+  renderActiveHeatmap();
   renderSelectedScenario();
 }
 
@@ -321,6 +419,12 @@ function handleInputChange() {
     20,
   );
   state.fcfShift = clamp(Number(refs.fcfShiftInput.value) || 0, -10, 10);
+  state.netDebt = clamp(Number(refs.netDebtInput.value) || 0, 0, 1_000_000_000_000);
+  state.sharesOutstanding = clamp(
+    Number(refs.sharesInput.value) || 1,
+    1,
+    100_000_000_000,
+  );
   render();
 }
 
@@ -338,6 +442,8 @@ function handleSliderChange() {
 refs.waccInput.addEventListener("input", handleInputChange);
 refs.terminalGrowthInput.addEventListener("input", handleInputChange);
 refs.fcfShiftInput.addEventListener("input", handleInputChange);
+refs.netDebtInput.addEventListener("input", handleInputChange);
+refs.sharesInput.addEventListener("input", handleInputChange);
 refs.waccSlider.addEventListener("input", handleSliderChange);
 refs.terminalGrowthSlider.addEventListener("input", handleSliderChange);
 refs.fcfShiftSlider.addEventListener("input", handleSliderChange);
@@ -346,6 +452,9 @@ refs.resetButton.addEventListener("click", () => {
   state.baseWacc = WORKBOOK_DEFAULTS.baseWacc;
   state.baseTerminalGrowth = WORKBOOK_DEFAULTS.baseTerminalGrowth;
   state.fcfShift = 0;
+  state.netDebt = WORKBOOK_DEFAULTS.netDebt;
+  state.sharesOutstanding = WORKBOOK_DEFAULTS.sharesOutstanding;
+  state.activeHeatmapId = "wacc-terminal";
   state.selectedKey = "wacc-terminal:0:0";
   render();
 });
