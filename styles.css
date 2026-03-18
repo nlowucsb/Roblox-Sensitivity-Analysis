@@ -51,7 +51,8 @@ body {
 }
 
 .hero-copy h1,
-.panel h2 {
+.panel h2,
+.panel h3 {
   margin: 0;
   font-family: "Space Grotesk", sans-serif;
   line-height: 0.98;
@@ -143,7 +144,7 @@ body {
 
 .input-grid,
 .metrics-grid,
-.heatmap-grid,
+.heatmap-panel,
 .detail-grid {
   display: grid;
   gap: 16px;
@@ -191,6 +192,17 @@ body {
   margin-top: 18px;
 }
 
+.capital-structure {
+  margin-top: 22px;
+}
+
+.capital-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
 .metric-label {
   color: var(--muted);
   font-size: 0.9rem;
@@ -203,8 +215,32 @@ body {
   font-weight: 700;
 }
 
-.heatmap-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.heatmap-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.heatmap-tab {
+  border: 1px solid rgba(74, 54, 33, 0.15);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 9px 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.heatmap-tab.is-active {
+  background: linear-gradient(135deg, var(--accent-deep), var(--accent));
+  color: #fff;
+  border-color: transparent;
+}
+
+.heatmap-panel {
+  grid-template-columns: 1fr;
 }
 
 .heatmap-card {
@@ -220,6 +256,12 @@ body {
 .heatmap-card p {
   margin: 0 0 16px;
   color: var(--muted);
+}
+
+.explanation-text {
+  margin: 0;
+  line-height: 1.75;
+  color: #4b3a2d;
 }
 
 .heatmap-table {
@@ -290,8 +332,9 @@ body {
 
 @media (max-width: 1080px) {
   .hero,
-  .heatmap-grid,
+  .heatmap-panel,
   .metrics-grid,
+  .capital-grid,
   .detail-grid,
   .input-grid {
     grid-template-columns: 1fr;
