@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Roblox Sensitivity Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to dashboard</a>
+
+    <div class="presentation-banner" role="region" aria-label="Related presentation">
+      <p>
+        Roblox DCF deck:
+        <a href="https://nlowucsb.github.io/Roblox-DCF-Presentation/" target="_blank" rel="noopener noreferrer">
+          Open Roblox-DCF-Presentation
+        </a>
+      </p>
+    </div>
+
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Intrinsic Value Scenario Tool</p>
+          <h1>Roblox Sensitivity Dashboard</h1>
+          <p class="hero-text">
+            Explore how intrinsic value per share moves when we change WACC,
+            terminal growth, and FCF growth by minus 2%, minus 1%, base, plus
+            1%, and plus 2%. Workbook values are derived from your Excel DCF.
+          </p>
+        </div>
+        <div class="hero-card">
+          <p class="mini-label">Base Case</p>
+          <div class="base-price" id="base-price" aria-live="polite">$51.17</div>
+          <p class="hero-note">
+            Matches the valuation logic from the workbook assumptions.
+          </p>
+        </div>
+      </header>
+
+      <main class="dashboard" id="main-content">
+        <section class="panel assumptions-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Inputs</p>
+              <h2>Base Assumptions</h2>
+            </div>
+            <button id="reset-button" class="ghost-button" type="button">
+              Reset to Workbook Values
+            </button>
+          </div>
+
+          <div class="input-grid">
+            <label class="input-card" for="wacc-input">
+              <span>WACC</span>
+              <div class="input-row">
+                <input id="wacc-input" type="number" step="0.01" inputmode="decimal" />
+                <span>%</span>
+              </div>
+              <input
+                id="wacc-slider"
+                class="range-slider"
+                type="range"
+                min="5"
+                max="20"
+                step="0.1"
+              />
+            </label>
+
+            <label class="input-card" for="terminal-growth-input">
+              <span>Terminal Growth</span>
+              <div class="input-row">
+                <input id="terminal-growth-input" type="number" step="0.01" inputmode="decimal" />
+                <span>%</span>
+              </div>
+              <input
+                id="terminal-growth-slider"
+                class="range-slider"
+                type="range"
+                min="-2"
+                max="8"
+                step="0.1"
+              />
+            </label>
+
+            <label class="input-card" for="fcf-shift-input">
+              <span>FCF Growth Shift</span>
+              <div class="input-row">
+                <input id="fcf-shift-input" type="number" step="0.01" inputmode="decimal" />
+                <span>%</span>
+              </div>
+              <input
+                id="fcf-shift-slider"
+                class="range-slider"
+                type="range"
+                min="-10"
+                max="10"
+                step="0.1"
+              />
+            </label>
+          </div>
+
+          <div class="metrics-grid" id="summary-cards" aria-live="polite"></div>
+
+          <div class="capital-structure">
+            <div>
+              <p class="eyebrow">Capital Structure</p>
+              <h3>Equity Bridge Inputs</h3>
+            </div>
+            <div class="capital-grid">
+              <label class="input-card" for="net-debt-input">
+                <span>Net Debt (USD)</span>
+                <div class="input-row">
+                  <input id="net-debt-input" type="number" step="1000000" inputmode="numeric" />
+                </div>
+              </label>
+
+              <label class="input-card" for="shares-input">
+                <span>Shares Outstanding</span>
+                <div class="input-row">
+                  <input id="shares-input" type="number" step="1000000" inputmode="numeric" />
+                </div>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel explanation-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Explanation</p>
+              <h2>Which Assumptions Matter Most?</h2>
+            </div>
+            <p class="section-copy">
+              Summary updates as your assumptions change.
+            </p>
+          </div>
+          <p id="brief-explanation" class="explanation-text"></p>
+          <p id="warning-note" class="warning-note" aria-live="polite"></p>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Sensitivity</p>
+              <h2>Interactive Heatmaps</h2>
+            </div>
+            <p class="section-copy">
+              Each map shows intrinsic value per share across the requested
+              assumption ranges.
+            </p>
+          </div>
+
+          <div class="heatmap-tabs" id="heatmap-tabs"></div>
+          <div class="heatmap-legend" aria-hidden="true">
+            <span>Lower value</span>
+            <div class="legend-gradient"></div>
+            <span>Higher value</span>
+          </div>
+          <div class="heatmap-panel" id="heatmap-grid"></div>
+        </section>
+
+        <section class="panel detail-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Scenario Drilldown</p>
+              <h2>Selected Cell</h2>
+            </div>
+            <p class="section-copy">
+              Click any heatmap cell to inspect the exact assumptions behind
+              that valuation.
+            </p>
+          </div>
+
+          <div class="detail-grid">
+            <div class="selected-value-card">
+              <p class="mini-label">Intrinsic Value</p>
+              <div id="selected-value" class="selected-value">$51.17</div>
+              <p id="selected-context" class="muted-text">
+                Base case from workbook assumptions.
+              </p>
+            </div>
+
+            <div class="scenario-table-wrap">
+              <table class="scenario-table">
+                <tbody id="selected-details"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
