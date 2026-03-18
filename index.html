@@ -19,7 +19,7 @@
           <p class="eyebrow">Intrinsic Value Scenario Tool</p>
           <h1>Roblox Sensitivity Dashboard</h1>
           <p class="hero-text">
-            Explore how intrinsic value per share moves when we change WACC,
+            Explore how intrinsic value per share moves when we flex WACC,
             terminal growth, and FCF growth by minus 2%, minus 1%, base, plus
             1%, and plus 2%.
           </p>
@@ -97,6 +97,41 @@
           </div>
 
           <div class="metrics-grid" id="summary-cards"></div>
+
+          <div class="capital-structure">
+            <div>
+              <p class="eyebrow">Capital Structure</p>
+              <h3>Equity Bridge Inputs</h3>
+            </div>
+            <div class="capital-grid">
+              <label class="input-card">
+                <span>Net Debt (USD)</span>
+                <div class="input-row">
+                  <input id="net-debt-input" type="number" step="1000000" />
+                </div>
+              </label>
+
+              <label class="input-card">
+                <span>Shares Outstanding</span>
+                <div class="input-row">
+                  <input id="shares-input" type="number" step="1000000" />
+                </div>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel explanation-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Brief Explanation</p>
+              <h2>Which Assumptions Matter Most?</h2>
+            </div>
+            <p class="section-copy">
+              This one-paragraph summary updates as your assumptions change.
+            </p>
+          </div>
+          <p id="brief-explanation" class="explanation-text"></p>
         </section>
 
         <section class="panel">
@@ -111,7 +146,8 @@
             </p>
           </div>
 
-          <div class="heatmap-grid" id="heatmap-grid"></div>
+          <div class="heatmap-tabs" id="heatmap-tabs"></div>
+          <div class="heatmap-panel" id="heatmap-grid"></div>
         </section>
 
         <section class="panel detail-panel">
